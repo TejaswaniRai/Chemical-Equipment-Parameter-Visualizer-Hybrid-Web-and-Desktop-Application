@@ -1,0 +1,39 @@
+{
+    "folders": [
+        {
+            "name": "🚀 Project Root",
+            "path": "."
+        },
+        {
+            "name": "🔧 Backend (Django)",
+            "path": "backend"
+        },
+        {
+            "name": "🌐 Web Frontend (React)",
+            "path": "frontend-web"
+        },
+        {
+            "name": "🖥️ Desktop Frontend (PyQt5)",
+            "path": "frontend-desktop"
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder:🖥️ Desktop Frontend (PyQt5)}/venv/Scripts/python.exe",
+        "python.analysis.extraPaths": [
+            "${workspaceFolder:🖥️ Desktop Frontend (PyQt5)}/venv/Lib/site-packages",
+            "${workspaceFolder:🔧 Backend (Django)}/venv/Lib/site-packages"
+        ],
+        "python.analysis.diagnosticSeverityOverrides": {
+            "reportMissingImports": "none",
+            "reportPrivateImportUsage": "none"
+        },
+        "python.terminal.activateEnvironment": true,
+        "python.analysis.typeCheckingMode": "off",
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/node_modules": false,
+            "**/.git": false
+        }
+    }
+}

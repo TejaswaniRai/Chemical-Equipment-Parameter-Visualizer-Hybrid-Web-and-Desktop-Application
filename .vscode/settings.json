@@ -1,0 +1,24 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/frontend-desktop/venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/frontend-desktop/venv/Lib/site-packages",
+        "${workspaceFolder}/backend/venv/Lib/site-packages"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    },
+    "python.languageServer": "Pylance",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": false
+    },
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/node_modules": true
+    },
+    "python.analysis.typeCheckingMode": "off"
+}
