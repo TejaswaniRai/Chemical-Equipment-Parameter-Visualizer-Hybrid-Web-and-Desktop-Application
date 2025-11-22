@@ -8,12 +8,15 @@ A comprehensive hybrid application for visualizing and analyzing chemical equipm
 ## 🎯 Project Overview
 
 This application allows users to:
-- Upload CSV files containing chemical equipment data
-- View detailed analytics and summary statistics
-- Visualize data through interactive charts
-- Generate PDF reports
-- Access data through both web and desktop interfaces
-- Maintain history of last 5 uploaded datasets
+- 🔐 **Secure Authentication** - User registration and login with token-based auth
+- 📤 **Upload CSV** files containing chemical equipment data
+- 📊 **View Analytics** - Detailed summary statistics and visualizations
+- 🔄 **Real-Time Monitoring** - Auto-refresh every 5 seconds
+- 👤 **User Isolation** - Each user sees only their own uploaded datasets
+- 📈 **Interactive Charts** - Beautiful visualizations with Chart.js and Matplotlib
+- 📄 **Generate PDF Reports** - Professional formatted analysis reports
+- 💻 **Dual Interface** - Access through both web browser and desktop application
+- 🕐 **History Management** - Track last 5 uploaded datasets per user
 
 ---
 
@@ -176,45 +179,87 @@ The desktop application will open in a new window.
 
 ## 📊 Features
 
-### ✅ CSV Upload
+### 🔐 Authentication & Security
+- User registration with validation (minimum 6 characters password)
+- Secure login with token-based authentication
+- User-specific data isolation (users only see their own uploads)
+- Encrypted password storage
+- Clear error messages and validation feedback
+- Mandatory backend connectivity checks
+
+### 📤 CSV Upload & Processing
 - Upload CSV files with equipment data
 - Automatic validation of required columns
 - Server-side processing with Pandas
+- Real-time file validation and error handling
 
-### ✅ Data Analytics
-- Calculate summary statistics (averages, totals)
+### 📊 Data Analytics
+- Calculate summary statistics (averages, totals, counts)
 - Equipment type distribution analysis
+- Parameter comparisons across equipment
 - Real-time data processing
 
-### ✅ Visualizations
+### 📈 Advanced Visualizations
 
-**Web (Chart.js):**
-- Pie chart for equipment type distribution
-- Bar chart for type counts
-- Line chart for parameter comparison
+**Web Application (Chart.js):**
+- 🥧 Pie chart for equipment type distribution
+- 📊 Bar chart for equipment type counts
+- 📉 Line chart for parameter trends
+- Interactive charts with hover details
 
-**Desktop (Matplotlib):**
-- Interactive pie chart
-- Multi-bar chart for parameters
-- High-quality vector graphics
+**Desktop Application (Matplotlib):**
+- 🥧 Enhanced pie chart with gradient colors and exploded slices
+- 📊 Horizontal bar chart for better label readability
+- 🎨 Professional styling with grid lines and legends
+- 🔍 Limited to 10 items for clarity (with indicator if more exist)
+- 📏 Auto-scaling and proper spacing
+- 💾 High-quality vector graphics
 
-### ✅ History Management
-- Stores last 5 uploaded datasets
-- View previous analyses
-- Switch between datasets
+### 🔄 Real-Time Monitoring
+- **Auto-refresh every 5 seconds** for both web and desktop
+- Toggle button to pause/resume auto-refresh
+- Visual indicators showing last update timestamp
+- Background updates without disrupting user workflow
+- Live dataset count updates
 
-### ✅ PDF Report Generation
-- Professional formatted reports
-- Summary statistics table
-- Equipment type distribution
-- Detailed equipment listings
-- Downloadable from both interfaces
+### 👥 User Isolation
+- Each user has a private workspace
+- Datasets filtered by authenticated user
+- No cross-user data visibility
+- Separate upload history per user
+- Secure data segregation at database level
 
-### ✅ Authentication
-- User registration and login
-- Token-based authentication
-- Secure API endpoints
-- Session management
+### 🕐 History Management
+- Stores last 5 uploaded datasets **per user**
+- View previous analyses with full details
+- Click to switch between datasets
+- Shows upload timestamp and username
+- Empty state with helpful guidance
+
+### 📄 PDF Report Generation
+- Professional formatted reports with ReportLab
+- Includes summary statistics table
+- Equipment type distribution breakdown
+- Complete detailed equipment listings
+- Downloadable from both web and desktop interfaces
+- Custom naming based on dataset
+
+### 🎨 Modern UI/UX
+
+**Desktop Application:**
+- Gradient stat cards with large, clear numbers
+- Scrollable charts tab for better organization
+- Improved spacing and layout
+- Styled data table with alternating row colors
+- Color-coded toggle buttons (Green = ON, Red = OFF)
+- Group boxes with clear section headers
+
+**Web Application:**
+- Clean, modern gradient design
+- Responsive layout for all screen sizes
+- Smooth animations and transitions
+- Status indicators with emojis
+- Color-coded refresh button (Green = ON, Pink = OFF)
 
 ---
 
@@ -225,13 +270,16 @@ The desktop application will open in a new window.
 - `POST /api/auth/login/` - Login user
 
 ### Datasets
-- `GET /api/datasets/` - List last 5 datasets (requires authentication)
+- `GET /api/datasets/` - List last 5 datasets **for current user** (requires authentication)
 - `POST /api/datasets/upload_csv/` - Upload CSV file (requires authentication)
 - `GET /api/datasets/{id}/` - Get dataset details with full equipment list (requires authentication)
 - `GET /api/datasets/{id}/summary/` - Get summary statistics (requires authentication)
 - `GET /api/datasets/{id}/generate_report/` - Download PDF report (requires authentication)
 
-**Note:** All dataset endpoints require `Authorization: Token <your-token>` header.
+**Note:** 
+- All dataset endpoints require `Authorization: Token <your-token>` header
+- Datasets are filtered by authenticated user (user isolation)
+- Each user only sees their own uploaded datasets
 
 ---
 
@@ -260,12 +308,25 @@ A sample file (`sample_equipment_data.csv`) is provided for testing.
 
 ## 🧪 Testing
 
-### Test with Sample Data
+### Automated Test Scripts
+
+Run these scripts to verify functionality:
+
+```bash
+# Test authentication security
+cd frontend-desktop
+python test_auth.py
+
+# Test user isolation
+python ..\test_user_isolation.py
+```
+
+### Manual Test with Sample Data
 
 1. **Start backend server**
    ```bash
    cd backend
-   .\venv\Scripts\python.exe manage.py runserver
+   python manage.py runserver
    ```
 
 2. **Start desktop OR web app** (in new terminal)
@@ -273,7 +334,7 @@ A sample file (`sample_equipment_data.csv`) is provided for testing.
    Desktop:
    ```bash
    cd frontend-desktop
-   .\venv\Scripts\python.exe main.py
+   python launcher.py
    ```
    
    Web:
@@ -282,16 +343,43 @@ A sample file (`sample_equipment_data.csv`) is provided for testing.
    npm start
    ```
 
-3. **Register a new user** through the application
-4. **Upload** `sample_equipment_data.csv` (15 equipment items)
-5. **View** summary statistics:
+3. **Register User 1**
+   - Username: `user1`, Password: `password123`
+   - Upload `sample_equipment_data.csv` (15 equipment items)
+   - Note: You see 1 dataset in history
+
+4. **Register User 2** (new window/browser tab)
+   - Username: `user2`, Password: `password456`
+   - Upload the same or different CSV file
+   - Note: You see 1 dataset in history (only user2's upload)
+
+5. **Verify User Isolation**
+   - User1 sees ONLY user1's data ✅
+   - User2 sees ONLY user2's data ✅
+   - No cross-user data visible ✅
+
+6. **Test Real-Time Monitoring**
+   - Open two app instances (user1 and user2)
+   - Upload in one window
+   - Watch auto-refresh update within 5 seconds ✅
+   - Other user's window doesn't show the upload ✅
+
+7. **View Statistics** for sample data:
    - Total: 15 items
-   - Avg Flowrate: 127.13 L/min
+   - Avg Flowrate: 119.80 L/min
    - Avg Pressure: 6.05 bar
    - Avg Temperature: 117.53°C
-6. **View** visualizations in Charts tab
-7. **Download** PDF report
-8. **Check** history tab for saved datasets
+
+8. **Test UI Features**
+   - View improved horizontal bar charts in Charts tab
+   - Scroll through charts for better viewing
+   - Click auto-refresh toggle (Green ↔ Red/Pink)
+   - Check timestamp updates
+   - View styled data table with alternating colors
+   - Check gradient stat cards in Summary tab
+
+9. **Download PDF report**
+10. **Check history tab** - shows only your uploads
 
 ### Creating Test Users
 
@@ -311,20 +399,32 @@ A sample file (`sample_equipment_data.csv`) is provided for testing.
 ## 🎨 UI/UX Features
 
 ### Web Application
-- Modern gradient design
-- Responsive layout
-- Interactive charts with Chart.js
-- Real-time data updates
-- Smooth animations
+- 🎨 Modern gradient design with purple/blue theme
+- 📱 Fully responsive layout for all screen sizes
+- 📊 Interactive charts with Chart.js (hover for details)
+- 🔄 Real-time auto-refresh with toggle (every 5 seconds)
+- ⏰ Last update timestamp display
+- 🎬 Smooth animations and transitions
+- 🟢 Color-coded status indicators (Green = ON, Pink = OFF)
+- ✨ Clean, card-based layout
 
 ### Desktop Application
-- Native Qt look and feel with Fusion style
-- Tabbed interface (Summary, Charts, Data Table, History)
-- High-quality matplotlib visualizations
-- File dialogs for CSV upload and PDF save
-- Authentication window with login/register
-- Status messages and error handling
-- Background server connectivity check
+- 🖥️ Native Qt look and feel with Fusion style
+- 📑 Tabbed interface (Summary, Charts, Data Table, History)
+- 📊 High-quality matplotlib visualizations with:
+  - Horizontal bar charts for better readability
+  - Gradient pie charts with exploded slices
+  - Professional grid lines and legends
+  - Auto-scaling for optimal display
+- 📜 Scrollable charts tab for better organization
+- 💳 Gradient stat cards with large, clear numbers
+- 🎨 Styled data table with alternating row colors
+- 📂 File dialogs for CSV upload and PDF save
+- 🔐 Polished authentication window with login/register
+- ✅ Clear status messages with emoji indicators
+- ⚠️ Detailed error handling and validation feedback
+- 🔄 Auto-refresh toggle with visual feedback
+- 🛡️ Mandatory backend connectivity check (no bypass)
 
 ---
 
@@ -376,9 +476,22 @@ A sample file (`sample_equipment_data.csv`) is provided for testing.
 
 ### Desktop Frontend Issues
 - **PyQt5 import errors in VS Code**: These are editor warnings only - the code runs fine. See `.vscode/settings.json` for configuration
-- **"Backend not running" error**: Start the Django server first before launching desktop app
+- **"Backend not running" error**: The launcher now requires backend - start Django server first
 - **matplotlib backend issues**: Use the provided `launcher.py` which handles dependencies
 - **DLL load failed (Windows)**: Install Microsoft Visual C++ 2015-2022 Redistributable
+- **Charts not displaying properly**: Charts now use horizontal bars and scrollable layout - scroll down to see all charts
+- **Auto-refresh not working**: Check that backend is running and toggle button shows "ON" (green)
+
+### Authentication Issues
+- **"Invalid credentials"**: User doesn't exist - register first or check username/password
+- **"Username already taken"**: Choose a different username
+- **Can't register/login**: Ensure backend server is running at `http://localhost:8000`
+- **Token expired**: Logout and login again to get a new token
+
+### User Isolation Issues
+- **Seeing other users' data**: Restart backend server to load updated code
+- **History shows wrong data**: Each user now sees only their own uploads - this is correct behavior
+- **Empty history after login**: Upload a CSV file to populate your personal history
 
 ---
 
@@ -442,17 +555,36 @@ run START_HERE.bat
 
 ## 👥 About This Project
 
-This project was developed as an **intern screening task** demonstrating:
-- ✅ Full-stack development skills (Backend + Web + Desktop)
+This project demonstrates advanced full-stack development capabilities:
+
+**Core Features:**
+- ✅ Full-stack development (Django + React + PyQt5)
 - ✅ RESTful API design and integration
 - ✅ Data processing and analytics with Pandas
-- ✅ Data visualization (Chart.js + Matplotlib)
-- ✅ Multiple frontend technologies (React + PyQt5)
-- ✅ Authentication and security
-- ✅ PDF report generation
-- ✅ Clean code practices and modular architecture
+- ✅ Advanced data visualization (Chart.js + Matplotlib)
+- ✅ Multiple frontend technologies with consistent UX
+- ✅ Token-based authentication and security
+- ✅ PDF report generation with ReportLab
+
+**Advanced Features:**
+- 🔄 Real-time monitoring with auto-refresh (5s intervals)
+- 👤 User isolation and data segregation
+- 🎨 Modern UI/UX with gradient designs
+- 📊 Optimized chart layouts (horizontal bars, scrollable)
+- 🔐 Enhanced security with validation
+- 🧪 Automated testing scripts
+- 📱 Responsive web design
+- 🖥️ Native desktop application
+- 🔒 Mandatory backend connectivity
+- ⚡ Efficient state management
+
+**Code Quality:**
+- ✅ Clean, modular architecture
+- ✅ Comprehensive error handling
+- ✅ User-friendly validation messages
 - ✅ Comprehensive documentation
 - ✅ Cross-platform compatibility
+- ✅ Production-ready code structure
 
 **Technologies Versions:**
 - Django 4.2.7
