@@ -77,8 +77,8 @@ class DatasetViewSet(viewsets.ModelViewSet):
         return DatasetSerializer
 
     def list(self, request):
-        """Return last 5 datasets"""
-        datasets = Dataset.objects.all()[:5]
+        """Return last 5 datasets for the current user"""
+        datasets = Dataset.objects.filter(uploaded_by=request.user).order_by('-uploaded_at')[:5]
         serializer = self.get_serializer(datasets, many=True)
         return Response(serializer.data)
 

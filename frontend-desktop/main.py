@@ -51,7 +51,7 @@ try:
                                  QFileDialog, QTableWidget, QTableWidgetItem, 
                                  QMessageBox, QTabWidget, QGroupBox, QGridLayout,
                                  QTextEdit, QScrollArea, QFrame)
-    from PyQt5.QtCore import Qt, QThread, pyqtSignal
+    from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
     from PyQt5.QtGui import QFont, QPalette, QColor
 except ImportError as e:
     print(f"Error importing PyQt5: {e}")
@@ -144,53 +144,87 @@ class AuthWindow(QWidget):
         password = self.password_input.text()
         
         if not username or not password:
-            self.error_label.setText('Please enter username and password')
+            self.error_label.setText('⚠️ Please enter username and password')
             return
         
         try:
             response = requests.post(f'{API_BASE_URL}/auth/login/', 
-                                    json={'username': username, 'password': password})
+                                    json={'username': username, 'password': password},
+                                    timeout=5)
             
             if response.status_code == 200:
                 data = response.json()
-                self.auth_success.emit(data['token'], data['username'])
-                self.close()
+                if 'token' in data and 'username' in data:
+                    self.auth_success.emit(data['token'], data['username'])
+                    self.close()
+                else:
+                    self.error_label.setText('❌ Invalid response from server')
+            elif response.status_code == 401:
+                self.error_label.setText('❌ Invalid username or password')
+            elif response.status_code == 400:
+                error_msg = response.json().get('error', 'Bad request')
+                self.error_label.setText(f'❌ {error_msg}')
             else:
-                self.error_label.setText('Invalid credentials')
+                self.error_label.setText(f'❌ Login failed (Status: {response.status_code})')
+        except requests.exceptions.ConnectionError:
+            self.error_label.setText('❌ Backend server not running! Start it first.')
+        except requests.exceptions.Timeout:
+            self.error_label.setText('❌ Server timeout. Check backend connection.')
         except Exception as e:
-            self.error_label.setText(f'Error: {str(e)}')
+            self.error_label.setText(f'❌ Error: {str(e)}')
     
     def register(self):
         username = self.username_input.text()
         password = self.password_input.text()
         
         if not username or not password:
-            self.error_label.setText('Please enter username and password')
+            self.error_label.setText('⚠️ Please enter username and password')
+            return
+        
+        if len(password) < 6:
+            self.error_label.setText('⚠️ Password must be at least 6 characters')
             return
         
         try:
             response = requests.post(f'{API_BASE_URL}/auth/register/', 
-                                    json={'username': username, 'password': password})
+                                    json={'username': username, 'password': password},
+                                    timeout=5)
             
             if response.status_code == 201:
                 data = response.json()
-                self.auth_success.emit(data['token'], data['username'])
-                self.close()
+                if 'token' in data and 'username' in data:
+                    QMessageBox.information(self, 'Success', 
+                        f'✅ Account created successfully!\nWelcome, {username}!')
+                    self.auth_success.emit(data['token'], data['username'])
+                    self.close()
+                else:
+                    self.error_label.setText('❌ Invalid response from server')
+            elif response.status_code == 400:
+                error_msg = response.json().get('error', 'Registration failed')
+                if 'already exists' in error_msg:
+                    self.error_label.setText('❌ Username already taken. Try another.')
+                else:
+                    self.error_label.setText(f'❌ {error_msg}')
             else:
-                self.error_label.setText('Registration failed')
+                self.error_label.setText(f'❌ Registration failed (Status: {response.status_code})')
+        except requests.exceptions.ConnectionError:
+            self.error_label.setText('❌ Backend server not running! Start it first.')
+        except requests.exceptions.Timeout:
+            self.error_label.setText('❌ Server timeout. Check backend connection.')
         except Exception as e:
-            self.error_label.setText(f'Error: {str(e)}')
+            self.error_label.setText(f'❌ Error: {str(e)}')
 
 
 class ChartWidget(QWidget):
     """Widget for displaying matplotlib charts"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, figsize=(10, 6)):
         super().__init__(parent)
-        self.figure = Figure(figsize=(8, 6))
+        self.figure = Figure(figsize=figsize, dpi=100)
         self.canvas = FigureCanvas(self.figure)
         
         layout = QVBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
         layout.addWidget(self.canvas)
         self.setLayout(layout)
     
@@ -206,33 +240,61 @@ class ChartWidget(QWidget):
         sizes = list(equipment_types.values())
         colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
         
-        ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
-        ax.set_title('Equipment Type Distribution', fontsize=14, fontweight='bold')
+        # Create pie chart with better styling
+        wedges, texts, autotexts = ax.pie(
+            sizes, 
+            labels=labels, 
+            autopct='%1.1f%%', 
+            colors=colors[:len(labels)], 
+            startangle=90,
+            textprops={'fontsize': 11, 'weight': 'bold'},
+            explode=[0.05] * len(labels)  # Slight separation
+        )
         
+        # Make percentage text more readable
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontsize(10)
+            autotext.set_weight('bold')
+        
+        ax.set_title('Equipment Type Distribution', fontsize=16, fontweight='bold', pad=20)
+        
+        self.figure.tight_layout()
         self.canvas.draw()
     
     def plot_parameters(self, equipment_items):
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         
-        names = [item['equipment_name'] for item in equipment_items]
-        flowrates = [item['flowrate'] for item in equipment_items]
-        pressures = [item['pressure'] for item in equipment_items]
-        temperatures = [item['temperature'] for item in equipment_items]
+        # Limit to first 10 items for better readability
+        items_to_plot = equipment_items[:10] if len(equipment_items) > 10 else equipment_items
         
-        x = range(len(names))
-        width = 0.25
+        names = [item['equipment_name'] for item in items_to_plot]
+        flowrates = [item['flowrate'] for item in items_to_plot]
+        pressures = [item['pressure'] for item in items_to_plot]
+        temperatures = [item['temperature'] for item in items_to_plot]
         
-        ax.bar([i - width for i in x], flowrates, width, label='Flowrate', color='#667eea')
-        ax.bar(x, pressures, width, label='Pressure', color='#764ba2')
-        ax.bar([i + width for i in x], temperatures, width, label='Temperature', color='#f093fb')
+        y = range(len(names))
+        height = 0.25
         
-        ax.set_xlabel('Equipment', fontweight='bold')
-        ax.set_ylabel('Value', fontweight='bold')
-        ax.set_title('Equipment Parameters Comparison', fontsize=14, fontweight='bold')
-        ax.set_xticks(x)
-        ax.set_xticklabels(names, rotation=45, ha='right')
-        ax.legend()
+        # Create horizontal bars for better label readability
+        ax.barh([i - height for i in y], flowrates, height, label='Flowrate', color='#667eea', alpha=0.8)
+        ax.barh(y, pressures, height, label='Pressure', color='#764ba2', alpha=0.8)
+        ax.barh([i + height for i in y], temperatures, height, label='Temperature', color='#f093fb', alpha=0.8)
+        
+        ax.set_ylabel('Equipment', fontweight='bold', fontsize=12)
+        ax.set_xlabel('Value', fontweight='bold', fontsize=12)
+        ax.set_title('Equipment Parameters Comparison', fontsize=16, fontweight='bold', pad=20)
+        ax.set_yticks(y)
+        ax.set_yticklabels(names, fontsize=10)
+        ax.legend(loc='lower right', fontsize=10)
+        ax.grid(axis='x', alpha=0.3, linestyle='--')
+        
+        # Add note if items were limited
+        if len(equipment_items) > 10:
+            ax.text(0.02, 0.98, f'Showing first 10 of {len(equipment_items)} items', 
+                   transform=ax.transAxes, fontsize=9, verticalalignment='top',
+                   bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         
         self.figure.tight_layout()
         self.canvas.draw()
@@ -247,6 +309,7 @@ class MainWindow(QMainWindow):
         self.username = None
         self.current_dataset = None
         self.datasets = []
+        self.refresh_timer = None
         
         self.show_auth()
     
@@ -263,6 +326,7 @@ class MainWindow(QMainWindow):
         self.initUI()
         self.show()
         self.fetch_datasets()
+        self.start_auto_refresh()
     
     def initUI(self):
         """Initialize the main UI"""
@@ -277,10 +341,24 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         
         # Header
+        header_widget = QWidget()
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
         header = QLabel(f'🧪 Chemical Equipment Visualizer - Welcome, {self.username}!')
         header.setFont(QFont('Arial', 16, QFont.Bold))
-        header.setStyleSheet('background-color: #667eea; color: white; padding: 15px;')
-        main_layout.addWidget(header)
+        header.setStyleSheet('color: white;')
+        header_layout.addWidget(header)
+        
+        header_layout.addStretch()
+        
+        self.refresh_label = QLabel('🔄 Auto-refresh: ON')
+        self.refresh_label.setStyleSheet('color: white; padding-right: 10px;')
+        header_layout.addWidget(self.refresh_label)
+        
+        header_widget.setLayout(header_layout)
+        header_widget.setStyleSheet('background-color: #667eea; padding: 15px;')
+        main_layout.addWidget(header_widget)
         
         # Upload section
         upload_group = QGroupBox('Upload CSV Data')
@@ -302,6 +380,12 @@ class MainWindow(QMainWindow):
         self.download_btn.clicked.connect(self.download_report)
         self.download_btn.setEnabled(False)
         upload_layout.addWidget(self.download_btn)
+        
+        # Auto-refresh toggle button
+        self.refresh_toggle_btn = QPushButton('🔄 Auto-Refresh: ON')
+        self.refresh_toggle_btn.clicked.connect(self.toggle_auto_refresh)
+        self.refresh_toggle_btn.setStyleSheet('background-color: #43e97b; color: black;')
+        upload_layout.addWidget(self.refresh_toggle_btn)
         
         logout_btn = QPushButton('Logout')
         logout_btn.clicked.connect(self.logout)
@@ -340,47 +424,80 @@ class MainWindow(QMainWindow):
         self.selected_file = None
     
     def setup_summary_tab(self):
-        """Setup summary statistics tab"""
+        """Setup summary statistics tab with improved styling"""
         layout = QVBoxLayout()
+        layout.setSpacing(20)
         
-        # Stats grid
+        # Stats grid with better styling
         stats_group = QGroupBox('Summary Statistics')
+        stats_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                padding: 15px;
+            }
+        """)
         stats_layout = QGridLayout()
+        stats_layout.setSpacing(15)
+        
+        # Create styled stat cards
+        def create_stat_card(title, label_widget):
+            card = QFrame()
+            card.setStyleSheet("""
+                QFrame {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                        stop:0 #667eea, stop:1 #764ba2);
+                    border-radius: 10px;
+                    padding: 15px;
+                }
+            """)
+            card_layout = QVBoxLayout()
+            
+            title_label = QLabel(title)
+            title_label.setStyleSheet('color: white; font-size: 12px; font-weight: normal;')
+            title_label.setAlignment(Qt.AlignCenter)
+            
+            label_widget.setFont(QFont('Arial', 28, QFont.Bold))
+            label_widget.setStyleSheet('color: white;')
+            label_widget.setAlignment(Qt.AlignCenter)
+            
+            card_layout.addWidget(title_label)
+            card_layout.addWidget(label_widget)
+            card.setLayout(card_layout)
+            return card
         
         self.total_count_label = QLabel('0')
-        self.total_count_label.setFont(QFont('Arial', 24, QFont.Bold))
-        self.total_count_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(QLabel('Total Equipment:'), 0, 0)
-        stats_layout.addWidget(self.total_count_label, 1, 0)
+        stats_layout.addWidget(create_stat_card('Total Equipment', self.total_count_label), 0, 0)
         
         self.avg_flowrate_label = QLabel('0.00')
-        self.avg_flowrate_label.setFont(QFont('Arial', 24, QFont.Bold))
-        self.avg_flowrate_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(QLabel('Avg Flowrate:'), 0, 1)
-        stats_layout.addWidget(self.avg_flowrate_label, 1, 1)
+        stats_layout.addWidget(create_stat_card('Avg Flowrate', self.avg_flowrate_label), 0, 1)
         
         self.avg_pressure_label = QLabel('0.00')
-        self.avg_pressure_label.setFont(QFont('Arial', 24, QFont.Bold))
-        self.avg_pressure_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(QLabel('Avg Pressure:'), 0, 2)
-        stats_layout.addWidget(self.avg_pressure_label, 1, 2)
+        stats_layout.addWidget(create_stat_card('Avg Pressure', self.avg_pressure_label), 0, 2)
         
         self.avg_temperature_label = QLabel('0.00')
-        self.avg_temperature_label.setFont(QFont('Arial', 24, QFont.Bold))
-        self.avg_temperature_label.setAlignment(Qt.AlignCenter)
-        stats_layout.addWidget(QLabel('Avg Temperature:'), 0, 3)
-        stats_layout.addWidget(self.avg_temperature_label, 1, 3)
+        stats_layout.addWidget(create_stat_card('Avg Temperature', self.avg_temperature_label), 0, 3)
         
         stats_group.setLayout(stats_layout)
         layout.addWidget(stats_group)
         
         # Dataset info
         info_group = QGroupBox('Dataset Information')
+        info_group.setStyleSheet('QGroupBox { font-weight: bold; font-size: 14px; padding: 15px; }')
         info_layout = QVBoxLayout()
         
         self.dataset_info_text = QTextEdit()
         self.dataset_info_text.setReadOnly(True)
-        self.dataset_info_text.setMaximumHeight(150)
+        self.dataset_info_text.setMaximumHeight(200)
+        self.dataset_info_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 12px;
+            }
+        """)
         info_layout.addWidget(self.dataset_info_text)
         
         info_group.setLayout(info_layout)
@@ -390,40 +507,94 @@ class MainWindow(QMainWindow):
         self.summary_tab.setLayout(layout)
     
     def setup_charts_tab(self):
-        """Setup charts tab"""
+        """Setup charts tab with improved layout"""
+        main_layout = QVBoxLayout()
+        
+        # Create scroll area for charts
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Container for all charts
+        container = QWidget()
         layout = QVBoxLayout()
+        layout.setSpacing(20)
         
-        # Type distribution chart
-        self.type_chart = ChartWidget()
-        layout.addWidget(QLabel('Equipment Type Distribution:'))
-        layout.addWidget(self.type_chart)
+        # Type distribution chart with group box
+        type_group = QGroupBox('Equipment Type Distribution')
+        type_group.setStyleSheet('QGroupBox { font-weight: bold; font-size: 14px; }')
+        type_layout = QVBoxLayout()
+        self.type_chart = ChartWidget(figsize=(10, 6))
+        type_layout.addWidget(self.type_chart)
+        type_group.setLayout(type_layout)
+        layout.addWidget(type_group)
         
-        # Parameters chart
-        self.params_chart = ChartWidget()
-        layout.addWidget(QLabel('Parameters Comparison:'))
-        layout.addWidget(self.params_chart)
+        # Parameters chart with group box
+        params_group = QGroupBox('Equipment Parameters Comparison')
+        params_group.setStyleSheet('QGroupBox { font-weight: bold; font-size: 14px; }')
+        params_layout = QVBoxLayout()
+        self.params_chart = ChartWidget(figsize=(10, 8))
+        params_layout.addWidget(self.params_chart)
+        params_group.setLayout(params_layout)
+        layout.addWidget(params_group)
         
-        self.charts_tab.setLayout(layout)
+        layout.addStretch()
+        container.setLayout(layout)
+        scroll.setWidget(container)
+        
+        main_layout.addWidget(scroll)
+        self.charts_tab.setLayout(main_layout)
     
     def setup_table_tab(self):
-        """Setup data table tab"""
+        """Setup data table tab with improved styling"""
         layout = QVBoxLayout()
         
         self.data_table = QTableWidget()
         self.data_table.setColumnCount(5)
         self.data_table.setHorizontalHeaderLabels(['Equipment Name', 'Type', 'Flowrate', 'Pressure', 'Temperature'])
         
+        # Improve table appearance
+        self.data_table.setAlternatingRowColors(True)
+        self.data_table.horizontalHeader().setStretchLastSection(True)
+        self.data_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #d0d0d0;
+                background-color: white;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+            QHeaderView::section {
+                background-color: #667eea;
+                color: white;
+                padding: 8px;
+                font-weight: bold;
+                border: none;
+            }
+        """)
+        
         layout.addWidget(self.data_table)
         self.table_tab.setLayout(layout)
     
     def setup_history_tab(self):
-        """Setup history tab"""
+        """Setup history tab with improved styling"""
         layout = QVBoxLayout()
         
         self.history_list = QTextEdit()
         self.history_list.setReadOnly(True)
+        self.history_list.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 5px;
+                padding: 15px;
+                font-size: 13px;
+                line-height: 1.6;
+            }
+        """)
         
-        layout.addWidget(QLabel('Last 5 Uploaded Datasets:'))
+        layout.addWidget(QLabel('<b style="font-size: 14px;">📜 Last 5 Uploaded Datasets (Your Uploads Only)</b>'))
         layout.addWidget(self.history_list)
         
         self.history_tab.setLayout(layout)
@@ -538,20 +709,88 @@ class MainWindow(QMainWindow):
             self.data_table.setItem(i, 2, QTableWidgetItem(str(item['flowrate'])))
             self.data_table.setItem(i, 3, QTableWidgetItem(str(item['pressure'])))
             self.data_table.setItem(i, 4, QTableWidgetItem(str(item['temperature'])))
+        
+        # Auto-resize columns to content
+        self.data_table.resizeColumnsToContents()
+        self.data_table.horizontalHeader().setStretchLastSection(True)
     
     def update_history(self):
         """Update history list"""
+        if not self.datasets:
+            self.history_list.setText("No datasets uploaded yet.\n\nUpload a CSV file to get started!")
+            return
+        
         history_text = ""
         for dataset in self.datasets:
             history_text += f"📁 {dataset['name']}\n"
             history_text += f"   Uploaded: {dataset['uploaded_at']}\n"
             history_text += f"   Count: {dataset['total_count']} | "
-            history_text += f"Avg Flowrate: {dataset['avg_flowrate']:.2f}\n\n"
+            history_text += f"Avg Flowrate: {dataset['avg_flowrate']:.2f}\n"
+            history_text += f"   User: {dataset.get('uploaded_by_username', 'Unknown')}\n\n"
         
         self.history_list.setText(history_text)
     
+    def start_auto_refresh(self):
+        """Start auto-refresh timer for real-time monitoring"""
+        if self.refresh_timer is None:
+            self.refresh_timer = QTimer()
+            self.refresh_timer.timeout.connect(self.auto_refresh_data)
+            self.refresh_timer.start(5000)  # Refresh every 5 seconds
+            print("Auto-refresh started (every 5 seconds)")
+    
+    def stop_auto_refresh(self):
+        """Stop auto-refresh timer"""
+        if self.refresh_timer is not None:
+            self.refresh_timer.stop()
+            self.refresh_timer = None
+            print("Auto-refresh stopped")
+    
+    def auto_refresh_data(self):
+        """Auto-refresh datasets from backend"""
+        try:
+            headers = {'Authorization': f'Token {self.token}'}
+            response = requests.get(f'{API_BASE_URL}/datasets/', headers=headers, timeout=2)
+            
+            if response.status_code == 200:
+                new_datasets = response.json()
+                
+                # Check if there are new datasets
+                if new_datasets != self.datasets:
+                    old_count = len(self.datasets)
+                    self.datasets = new_datasets
+                    self.update_history()
+                    
+                    # Update refresh label with timestamp
+                    from datetime import datetime
+                    now = datetime.now().strftime('%H:%M:%S')
+                    self.refresh_label.setText(f'🔄 Updated: {now}')
+                    
+                    # Show notification if new dataset detected
+                    if len(new_datasets) > old_count:
+                        print(f"New dataset detected! Total: {len(new_datasets)}")
+            else:
+                print(f"Refresh failed: {response.status_code}")
+        except Exception as e:
+            print(f"Auto-refresh error: {str(e)}")
+    
+    def toggle_auto_refresh(self):
+        """Toggle auto-refresh on/off"""
+        if self.refresh_timer and self.refresh_timer.isActive():
+            self.stop_auto_refresh()
+            self.refresh_toggle_btn.setText('⏸️ Auto-Refresh: OFF')
+            self.refresh_toggle_btn.setStyleSheet('background-color: #fa709a; color: white;')
+            self.refresh_label.setText('⏸️ Auto-refresh paused')
+        else:
+            self.start_auto_refresh()
+            self.refresh_toggle_btn.setText('🔄 Auto-Refresh: ON')
+            self.refresh_toggle_btn.setStyleSheet('background-color: #43e97b; color: black;')
+            from datetime import datetime
+            now = datetime.now().strftime('%H:%M:%S')
+            self.refresh_label.setText(f'🔄 Updated: {now}')
+    
     def logout(self):
         """Handle logout"""
+        self.stop_auto_refresh()
         self.token = None
         self.username = None
         self.current_dataset = None

@@ -60,17 +60,19 @@ def main():
     
     # Check if backend is running
     if not check_backend_running():
-        print("WARNING: Backend server is not running!")
+        print("\n" + "="*60)
+        print("ERROR: Backend server is not running!")
+        print("="*60)
+        print("\nThe desktop application requires the backend server.")
         print("\nPlease start the Django backend first:")
         print("1. Open a new terminal")
         print("2. Navigate to 'backend' folder")
         print("3. Run: python manage.py runserver")
         print("\nOr use the batch file: run_backend.bat")
         print("\n" + "="*60 + "\n")
-        
-        response = input("Continue anyway? (y/n): ")
-        if response.lower() != 'y':
-            sys.exit(0)
+        print("Cannot continue without backend. Exiting...")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
     
     # Launch the main application
     print("Starting application...\n")

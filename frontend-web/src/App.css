@@ -137,6 +137,21 @@
   background: #653a8e;
 }
 
+.refresh-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.refresh-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
 .upload-section {
   background: white;
   padding: 30px;

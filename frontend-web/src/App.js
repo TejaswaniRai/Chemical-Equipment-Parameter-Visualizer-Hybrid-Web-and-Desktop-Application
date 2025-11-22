@@ -18,6 +18,8 @@ function App() {
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentDataset, setCurrentDataset] = useState(null);
@@ -41,6 +43,7 @@ function App() {
         headers: { Authorization: `Token ${authToken}` }
       });
       setDatasets(response.data);
+      setLastUpdate(new Date());
       if (response.data.length > 0 && !currentDataset) {
         fetchDatasetDetail(response.data[0].id, authToken);
       }
@@ -60,6 +63,18 @@ function App() {
       fetchDatasets(savedToken);
     }
   }, [fetchDatasets]);
+
+  // Auto-refresh datasets every 5 seconds
+  useEffect(() => {
+    if (!isAuthenticated || !token || !autoRefresh) return;
+
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing datasets...');
+      fetchDatasets(token);
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, token, autoRefresh, fetchDatasets]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -284,6 +299,21 @@ function App() {
 
         <div className="user-info">
           <span>Welcome, {currentUser}!</span>
+          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
+            {autoRefresh ? '🔄' : '⏸️'} 
+            {lastUpdate ? `Updated: ${lastUpdate.toLocaleTimeString()}` : 'Loading...'}
+          </span>
+          <button 
+            onClick={() => setAutoRefresh(!autoRefresh)} 
+            className="refresh-btn"
+            style={{ 
+              marginLeft: '10px',
+              backgroundColor: autoRefresh ? '#43e97b' : '#fa709a',
+              color: autoRefresh ? 'black' : 'white'
+            }}
+          >
+            {autoRefresh ? '🔄 Auto-Refresh: ON' : '⏸️ Auto-Refresh: OFF'}
+          </button>
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </div>
 
@@ -402,7 +432,7 @@ function App() {
 
         {datasets.length > 0 && (
           <div className="history-section">
-            <h2>📜 Upload History (Last 5)</h2>
+            <h2>📜 Upload History (Last 5 - Your Uploads Only)</h2>
             <div className="history-list">
               {datasets.map((dataset) => (
                 <div
@@ -413,6 +443,7 @@ function App() {
                   <h3>{dataset.name}</h3>
                   <p>Uploaded: {new Date(dataset.uploaded_at).toLocaleString()}</p>
                   <p>Count: {dataset.total_count} | Avg Flowrate: {dataset.avg_flowrate.toFixed(2)}</p>
+                  <p style={{ fontSize: '12px', color: '#888' }}>By: {dataset.uploaded_by_username || 'You'}</p>
                 </div>
               ))}
             </div>
