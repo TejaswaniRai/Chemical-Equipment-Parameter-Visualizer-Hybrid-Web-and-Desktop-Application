@@ -286,15 +286,6 @@ The desktop application will open in a new window.
 ## 📝 CSV File Format
 
 The CSV file should have the following columns:
-
-```csv
-Equipment Name,Type,Flowrate,Pressure,Temperature
-Pump-1,Pump,120,5.2,110
-Compressor-1,Compressor,95,8.4,95
-Valve-1,Valve,60,4.1,105
-...
-```
-
 **Required Columns:**
 - `Equipment Name` - Name/ID of the equipment
 - `Type` - Type/category of equipment
@@ -495,132 +486,14 @@ python ..\test_user_isolation.py
 
 ---
 
-## 🚀 Quick Start (Windows)
-
-The project includes batch files for easy setup and execution:
-
-### First Time Setup
-```bash
-# 1. Setup backend
-run setup_backend.bat
-
-# 2. Setup web frontend
-run setup_web.bat
-
-# 3. Setup desktop frontend
-run setup_desktop.bat
-```
-
-### Running the Application
-```bash
-# 1. Start backend server
-run run_backend.bat
-
-# 2. Start desktop app (in new terminal)
-run run_desktop.bat
-
-# OR start web app (in new terminal)
-run run_web.bat
-```
-
-### Interactive Setup
-```bash
-# Run the interactive menu
-run START_HERE.bat
-```
-
-## 🚀 Deployment Considerations
-
-### Backend (Production)
-- Use PostgreSQL instead of SQLite
-- Set `DEBUG = False` in settings.py
-- Configure proper SECRET_KEY
-- Use gunicorn or uwsgi
-- Set up proper ALLOWED_HOSTS
-- Use environment variables for secrets
-- Configure static file serving
-
-### Web Frontend (Production)
-- Run `npm run build`
-- Serve static files with nginx or Apache
-- Configure proper API URL (not localhost)
-- Enable HTTPS
-
-### Desktop Application (Distribution)
-- Use PyInstaller to create executables
-- Bundle required dependencies
-- Create installers for different OS (NSIS, .dmg, .deb)
-
----
-
-## 👥 About This Project
-
-This project demonstrates advanced full-stack development capabilities:
-
-**Core Features:**
-- ✅ Full-stack development (Django + React + PyQt5)
-- ✅ RESTful API design and integration
-- ✅ Data processing and analytics with Pandas
-- ✅ Advanced data visualization (Chart.js + Matplotlib)
-- ✅ Multiple frontend technologies with consistent UX
-- ✅ Token-based authentication and security
-- ✅ PDF report generation with ReportLab
-
-**Advanced Features:**
-- 🔄 Real-time monitoring with auto-refresh (5s intervals)
-- 👤 User isolation and data segregation
-- 🎨 Modern UI/UX with gradient designs
-- 📊 Optimized chart layouts (horizontal bars, scrollable)
-- 🔐 Enhanced security with validation
-- 🧪 Automated testing scripts
-- 📱 Responsive web design
-- 🖥️ Native desktop application
-- 🔒 Mandatory backend connectivity
-- ⚡ Efficient state management
-
-**Code Quality:**
-- ✅ Clean, modular architecture
-- ✅ Comprehensive error handling
-- ✅ User-friendly validation messages
-- ✅ Comprehensive documentation
-- ✅ Cross-platform compatibility
-- ✅ Production-ready code structure
-
-**Technologies Versions:**
-- Django 4.2.7
-- Django REST Framework 3.14.0
-- React 18.2.0
-- PyQt5 5.15.10
-- Matplotlib 3.8.2
-- Pandas 2.1.3
-- ReportLab 4.0.7
-
----
-
 ## 📄 License
 
 This project is developed for educational and evaluation purposes.
 
 ---
+## 👨‍💻 Developer
 
-## 🙏 Acknowledgments
-
-- Django REST Framework documentation
-- React.js community
-- PyQt5 documentation
-- Chart.js and Matplotlib libraries
-- Sample chemical equipment data
-
----
-
-## 📞 Support
-
-For issues or questions:
-1. Check the troubleshooting section
-2. Review API endpoint documentation
-3. Check console/terminal for error messages
-4. Verify all services are running
-
----
-
-**Built with ❤️ for Chemical Equipment Analysis**
+**Tejaswani Rai**
+- GitHub: [@TejaswaniRai](https://github.com/TejaswaniRai)
+- Linkedin: [@Tejaswani Rai](https://www.linkedin.com/in/tejaswani-rai/)
+- Repository: [Chemical-Equipment-Parameter-Visualizer](https://github.com/TejaswaniRai/Chemical-Equipment-Parameter-Visualizer-Hybrid-Web-and-Desktop-Application)
